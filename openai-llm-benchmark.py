@@ -20,9 +20,11 @@ python benchmark_openai.py \
 
 import argparse
 import asyncio
+import json
+import os
 import statistics
 import time
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict, Any
 import httpx
 import numpy as np
 try:
@@ -35,8 +37,9 @@ async def _chat_completion(
     url: str,
     headers: dict,
     payload: dict,
-) -> Tuple[Optional[float], Optional[int]]:
-    """Send one completion request and return (latency, total_tokens)."""
+    capture_responses: bool,
+) -> Tuple[Optional[float], Optional[int], Optional[Dict[str, Any]]]:
+    """Send one completion request and return (latency, total_tokens, response)."""
     t0 = time.perf_counter()
     try:
         r = await client.post(url, headers=headers, json=payload, timeout=60)
@@ -48,9 +51,9 @@ async def _chat_completion(
             "total_tokens",
             usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0),
         )
-        return latency, tokens
+        return latency, tokens, data if capture_responses else None
     except Exception:
-        return None, None
+        return None, None, None
 
 async def _run_once(args) -> None:
     url = f"{args.base_url.rstrip('/')}/v1/chat/completions"
@@ -69,17 +72,20 @@ async def _run_once(args) -> None:
     sem = asyncio.Semaphore(args.concurrency)
     latencies: List[float] = []
     tokens: List[int] = []
+    responses: List[Dict[str, Any]] = []
 
     async def worker():
         async with sem:
-            l, t = await _chat_completion(client, url, headers, payload)
+            l, t, resp = await _chat_completion(client, url, headers, payload, args.capture_responses)
             if l is not None:
                 latencies.append(l)
                 tokens.append(t)
+                if resp and args.capture_responses:
+                    responses.append(resp)
 
     async with httpx.AsyncClient(http2=True, timeout=None) as client:
         # Optional one-shot warm-up
-        await _chat_completion(client, url, headers, payload)
+        await _chat_completion(client, url, headers, payload, False)
 
         tic = time.perf_counter()
         tasks = [asyncio.create_task(worker()) for _ in range(args.requests)]
@@ -90,6 +96,20 @@ async def _run_once(args) -> None:
         toc = time.perf_counter()
 
     _report(latencies, tokens, args.requests, toc - tic)
+    
+    # Write responses to file if requested
+    if args.capture_responses and responses:
+        _write_responses_to_file(responses, args.output_file)
+
+def _write_responses_to_file(responses: List[Dict[str, Any]], filename: str) -> None:
+    """Write LLM responses to a file."""
+    directory = os.path.dirname(filename)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+        
+    with open(filename, 'w') as f:
+        json.dump(responses, f, indent=2)
+    print(f"\nResponses written to {filename}")
 
 # Report
 def _report(latencies: List[float], tokens: List[int], total_req: int, wall: float):
@@ -118,6 +138,8 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--concurrency", type=int, default=10, help="Parallel workers")
     p.add_argument("--max-tokens", type=int, default=32, help="max_tokens per request")
     p.add_argument("--quiet", action="store_true", help="Hide progress bar")
+    p.add_argument("--capture-responses", action="store_true", help="Capture LLM responses and write to file")
+    p.add_argument("--output-file", default="responses.json", help="File to write captured responses (used with --capture-responses)")
     return p.parse_args()
 
 

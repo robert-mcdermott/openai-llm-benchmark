@@ -9,6 +9,7 @@ A quick-and-dirty load-tester for any OpenAI-style LLM endpoint. This tool allow
 - Measure key performance metrics (requests/sec, tokens/sec, latency)
 - Support for various models and deployments (vLLM, Ollama, etc.)
 - Progress bar visualization (with tqdm)
+- Optional response capturing for inspection and analysis
 
 ## Installation
 
@@ -49,6 +50,16 @@ uv run openai-llm-benchmark.py \
        --requests 200 --concurrency 16
 ```
 
+### Example: Capturing responses to a file
+
+```bash
+uv run openai-llm-benchmark.py \
+       --base-url http://localhost:11434 \
+       --model qwen3:14b-fp16 \
+       --requests 50 --concurrency 8 \
+       --capture-responses --output-file results/ollama_responses.json
+```
+
 ## Parameters
 
 | Parameter | Description | Default |
@@ -61,6 +72,8 @@ uv run openai-llm-benchmark.py \
 | `--concurrency` | Number of parallel workers | 10 |
 | `--max-tokens` | Maximum tokens per request | 32 |
 | `--quiet` | Hide progress bar | False |
+| `--capture-responses` | Capture LLM responses and write to file | False |
+| `--output-file` | File path for captured responses | "responses.json" |
 
 ## Output
 
@@ -72,6 +85,8 @@ The benchmark will output:
 - Average latency
 - p50 latency (median)
 - p95 latency
+
+When `--capture-responses` is enabled, all LLM responses will be written to the specified output file in JSON format.
 
 ## Requirements
 
