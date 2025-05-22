@@ -64,7 +64,7 @@ async def _run_once(args) -> None:
     payload = {
         "model": args.model,
         "max_tokens": args.max_tokens,
-        "temperature": 0.0,
+        "temperature": args.temperature,
         "messages": [{"role": "user", "content": args.prompt}],
         "stream": False,
     }
@@ -137,6 +137,7 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--requests", type=int, default=100, help="Total number of requests")
     p.add_argument("--concurrency", type=int, default=10, help="Parallel workers")
     p.add_argument("--max-tokens", type=int, default=32, help="max_tokens per request")
+    p.add_argument("--temperature", type=float, default=0.2, help="Temperature for sampling (0.0 = deterministic)")
     p.add_argument("--quiet", action="store_true", help="Hide progress bar")
     p.add_argument("--capture-responses", action="store_true", help="Capture LLM responses and write to file")
     p.add_argument("--output-file", default="responses.json", help="File to write captured responses (used with --capture-responses)")

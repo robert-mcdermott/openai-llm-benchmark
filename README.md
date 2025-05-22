@@ -71,6 +71,7 @@ uv run openai-llm-benchmark.py \
 | `--requests` | Total number of requests | 100 |
 | `--concurrency` | Number of parallel workers | 10 |
 | `--max-tokens` | Maximum tokens per request | 32 |
+| `--temperature` | Temperature for sampling (0.0 = deterministic) | 0.2 |
 | `--quiet` | Hide progress bar | False |
 | `--capture-responses` | Capture LLM responses and write to file | False |
 | `--output-file` | File path for captured responses | "responses.json" |
