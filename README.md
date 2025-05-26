@@ -15,7 +15,7 @@ A quick-and-dirty load-tester for any OpenAI-style LLM endpoint. This tool allow
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/openai-llm-benchmark.git
+git clone https://github.com/robert-mcdermott/openai-llm-benchmark.git
 cd openai-llm-benchmark
 
 # Install dependencies
